@@ -1,6 +1,7 @@
 'use server';
 
 import { hashSync } from 'bcrypt-ts-edge';
+import { z } from 'zod';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { auth, signIn, signOut } from '@/auth';
 import { prisma } from '@/db/prisma';
