@@ -3,9 +3,9 @@ import Link from 'next/link';
 import Menu from '@/components/shared/header/menu';
 import { APP_NAME } from '@/lib/constants';
 import MainNav from './main-nav';
-import { Input } from '@/components/ui/input';
+import AdminSearch from '@/components/admin/admin-search';
 
-export default function AdminLayout({
+export default function UserLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -23,13 +23,7 @@ export default function AdminLayout({
             </Link>
             <MainNav className='mx-6' />
             <div className='ml-auto items-center flex space-x-4'>
-              <div>
-                <Input
-                  type='search'
-                  placeholder='Search... '
-                  className='md:w-[100px] lg:w-[300px]'
-                />
-              </div>
+              <AdminSearch />
               <Menu />
             </div>
           </div>
