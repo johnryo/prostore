@@ -1,7 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/db/prisma';
 import { insertProductSchema, updateProductSchema } from '../validators';
 import { convertToPlainObject, formatError } from '../utils';
@@ -35,17 +36,26 @@ export async function getProductById(productId: string) {
 
 // Get all products
 export async function getAllProducts({
-  query,
   limit = PAGE_SIZE,
   page,
-  category,
+  query,
 }: {
-  query: string;
   limit?: number;
   page: number;
-  category?: string;
+  query: string;
 }) {
+  const queryFilter: Prisma.ProductWhereInput =
+    query && query !== 'all'
+      ? {
+          name: {
+            contains: query,
+            mode: 'insensitive',
+          } as Prisma.StringFilter,
+        }
+      : {};
+
   const data = await prisma.product.findMany({
+    where: { ...queryFilter },
     orderBy: { createdAt: 'desc' },
     skip: (page - 1) * limit,
     take: limit,
