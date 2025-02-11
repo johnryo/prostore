@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { auth } from '@/auth';
 import { getProductBySlug } from '@/lib/actions/product.actions';
 import { getMyCart } from '@/lib/actions/cart.actions';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import ProductPrice from '@/components/shared/product/product-price';
 import ProductImages from '@/components/shared/product/product-images';
 import AddToCart from '@/components/shared/product/add-to-cart';
+import Rating from '@/components/shared/product/rating';
+import ReviewList from './review-list';
 
 const ProductDetailsPage = async (props: {
   params: Promise<{ slug: string }>;
@@ -14,6 +17,9 @@ const ProductDetailsPage = async (props: {
 
   const product = await getProductBySlug(slug);
   if (!product) notFound();
+
+  const session = await auth();
+  const userId = session?.user?.id;
 
   const cart = await getMyCart();
 
@@ -30,8 +36,10 @@ const ProductDetailsPage = async (props: {
                 {product.brand} {product.category}
               </p>
               <h1 className='h3-bold'>{product.name}</h1>
+              <Rating value={Number(product.rating)} />
               <p>
-                {product.rating} of {product.numReviews} reviews
+                {product.numReviews}{' '}
+                {product.numReviews === 1 ? 'review' : 'reviews'}
               </p>
               <div className='flex flex-col sm:flex-row sm:items-center gap-3'>
                 <ProductPrice
@@ -81,6 +89,14 @@ const ProductDetailsPage = async (props: {
             </Card>
           </div>
         </div>
+      </section>
+      <section className='mt-10'>
+        <h2 className='h2-bold'>Customer Reviews</h2>
+        <ReviewList
+          userId={userId || ''}
+          productId={product.id}
+          productSlug={product.slug}
+        />
       </section>
     </>
   );
