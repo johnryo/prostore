@@ -5,13 +5,18 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { auth } from '@/auth';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/db/prisma';
+import { sendPurchaseReceipt } from '@/email';
 import { convertToPlainObject, formatError } from '../utils';
 import { insertOrderSchema } from '../validators';
 import { getMyCart } from './cart.actions';
 import { getUserById } from './user.actions';
 import { paypal } from '../paypal';
 import { PAGE_SIZE } from '../constants';
-import type { CartItem, PaymentResult } from '../../types/index';
+import type {
+  CartItem,
+  PaymentResult,
+  ShippingAddress,
+} from '../../types/index';
 
 export async function createOrder() {
   try {
@@ -250,6 +255,14 @@ export async function updateOrderToPaid({
   });
 
   if (!updatedOrder) throw new Error('Order not found');
+
+  sendPurchaseReceipt({
+    order: {
+      ...updatedOrder,
+      shippingAddress: updatedOrder.shippingAddress as ShippingAddress,
+      paymentResult: updatedOrder.paymentResult as PaymentResult,
+    },
+  });
 }
 
 // Get user's orders
