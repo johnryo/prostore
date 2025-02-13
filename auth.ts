@@ -1,10 +1,10 @@
 import { compareSync } from 'bcrypt-ts-edge';
-import NextAuth, { NextAuthConfig } from 'next-auth';
-// import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import NextAuth from 'next-auth';
+import { cookies } from 'next/headers';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/db/prisma';
+import { authConfig } from './auth.config';
 
 export const config = {
   pages: {
@@ -12,7 +12,7 @@ export const config = {
     error: '/sign-in',
   },
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
     maxAge: 30 * 24 * 60 * 60,
   },
   adapter: PrismaAdapter(prisma),
@@ -51,6 +51,7 @@ export const config = {
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, user, trigger, token }: any) {
       session.user.id = token.sub;
@@ -81,29 +82,29 @@ export const config = {
           });
         }
 
-        // if (trigger === 'signIn' || trigger === 'signUp') {
-        //   const cookiesObject = await cookies();
-        //   const sessionCartId = cookiesObject.get('sessionCartId')?.value;
+        if (trigger === 'signIn' || trigger === 'signUp') {
+          const cookiesObject = await cookies();
+          const sessionCartId = cookiesObject.get('sessionCartId')?.value;
 
-        //   if (sessionCartId) {
-        //     const sessionCart = await prisma.cart.findFirst({
-        //       where: { sessionCartId },
-        //     });
+          if (sessionCartId) {
+            const sessionCart = await prisma.cart.findFirst({
+              where: { sessionCartId },
+            });
 
-        //     if (sessionCart) {
-        //       // Delete current user cart
-        //       await prisma.cart.deleteMany({
-        //         where: { userId: user.id },
-        //       });
+            if (sessionCart) {
+              // Delete current user cart
+              await prisma.cart.deleteMany({
+                where: { userId: user.id },
+              });
 
-        //       // Assign new cart
-        //       await prisma.cart.update({
-        //         where: { id: sessionCart.id },
-        //         data: { userId: user.id },
-        //       });
-        //     }
-        //   }
-        // }
+              // Assign new cart
+              await prisma.cart.update({
+                where: { id: sessionCart.id },
+                data: { userId: user.id },
+              });
+            }
+          }
+        }
       }
 
       // Handle session updates
@@ -113,38 +114,7 @@ export const config = {
 
       return token;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    authorized({ request, auth }: any) {
-      const protectedPaths = [
-        /\/shipping-address/,
-        /\/payment-method/,
-        /\/place-order/,
-        /\/profile/,
-        /\/user\/(.*)/,
-        /\/order\/(.*)/,
-        /\/admin/,
-      ];
-
-      const { pathname } = request.nextUrl;
-
-      if (!auth && protectedPaths.some((p) => p.test(pathname))) return false;
-
-      if (!request.cookies.get('sessionCartId')) {
-        const sessionCartId = crypto.randomUUID();
-        const newRequestHeaders = new Headers(request.headers);
-        const response = NextResponse.next({
-          request: {
-            headers: newRequestHeaders,
-          },
-        });
-        response.cookies.set('sessionCartId', sessionCartId);
-
-        return response;
-      } else {
-        return true;
-      }
-    },
   },
-} satisfies NextAuthConfig;
+};
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config);
